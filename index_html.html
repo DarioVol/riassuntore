@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 AI Meeting Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .agent-status {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .agent-status.available {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .agent-status.unavailable {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #f0f0f0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.3s ease;
+            border-radius: 10px 10px 0 0;
+            margin-right: 5px;
+        }
+
+        .tab:last-child {
+            margin-right: 0;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+
+        .tab:hover:not(.active) {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        input[type="file"], textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="file"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            background: #f0f2ff;
+            border-color: #5a6fd8;
+        }
+
+        .file-upload-area.dragover {
+            background: #e8ebff;
+            border-color: #4c63d2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .loading-hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+
+        .results {
+            margin-top: 40px;
+            display: none;
+        }
+
+        .results h2 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .result-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-card .content {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #555;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-card .content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .result-card .content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .result-card .content::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        .metadata {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .metadata strong {
+            color: #333;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            padding: 8px 15px;
+            font-size: 12px;
+            margin-top: 10px;
+            border-radius: 20px;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                margin-right: 0;
+                margin-bottom: 5px;
+                border-radius: 10px;
+            }
+
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🤖 AI Meeting Agent</h1>
+        <p>Genera riassunti specializzati in 4 stili diversi da documenti e testi</p>
+    </div>
+
+    <div class="content">
+        {% if agent_available %}
+        <div class="agent-status available">
+            ✅ Sistema operativo e pronto all'uso
+        </div>
+        {% else %}
+        <div class="agent-status unavailable">
+            ❌ Sistema non disponibile: {{ agent_error or "Errore sconosciuto" }}
+            <br><small>Controlla la configurazione API key in config/api_keys.ini</small>
+        </div>
+        {% endif %}
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('file')">📁 Carica File</button>
+            <button class="tab" onclick="switchTab('text')">📝 Inserisci Testo</button>
+        </div>
+
+        <div id="file-tab" class="tab-content active">
+            <form id="fileForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Seleziona documento da processare:</label>
+                    <div class="file-upload-area" onclick="document.getElementById('file').click()">
+                        <div class="upload-icon">📄</div>
+                        <div class="upload-text">Clicca per selezionare o trascina qui il file</div>
+                        <div class="upload-hint">Supportati: PDF, DOCX, DOC, TXT (max 50MB)</div>
+                        <input type="file" id="file" name="file" accept=".pdf,.docx,.doc,.txt" style="display: none;">
+                    </div>
+                    <div id="file-info" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+                </div>
+                <button type="submit" {% if not agent_available %}disabled{% endif %}>
+                    🚀 Analizza Documento
+                </button>
+            </form>
+        </div>
+
+        <div id="text-tab" class="tab-content">
+            <form id="textForm">
+                <div class="form-group">
+                    <label for="text">Inserisci il testo da analizzare:</label>
+                    <textarea
+                            id="text"
+                            name="text"
+                            placeholder="Incolla qui il testo della riunione, trascrizione o documento da analizzare...&#10;&#10;Esempio:&#10;Riunione del 4 giugno 2025&#10;Partecipanti: Mario, Anna, Luca&#10;&#10;Punti discussi:&#10;1. Nuovo progetto AI&#10;2. Budget Q2&#10;3. Timeline delivery..."
+                            {% if not agent_available %}disabled{% endif %}
+                    ></textarea>
+                </div>
+                <button type="submit" {% if not agent_available %}disabled{% endif %}>
+                    🚀 Analizza Testo
+                </button>
+            </form>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">🤖 Analisi in corso con AI...</div>
+            <div class="loading-hint">Generazione riassunti specializzati in 4 stili diversi</div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <h2>📊 Risultati Analisi</h2>
+
+            <div class="metadata" id="metadata"></div>
+
+            <div class="result-grid">
+                <div class="result-card">
+                    <h3>📚 Stile Didattico</h3>
+                    <div class="content" id="didactic-result"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('didactic-result')">📋 Copia</button>
+                </div>
+
+                <div class="result-card">
+                    <h3>🤝 Stile Cliente</h3>
+                    <div class="content" id="client-result"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('client-result')">📋 Copia</button>
+                </div>
+
+                <div class="result-card">
+                    <h3>💻 Stile Sviluppatori</h3>
+                    <div class="content" id="developers-result"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('developers-result')">📋 Copia</button>
+                </div>
+
+                <div class="result-card">
+                    <h3>📈 Stile Management</h3>
+                    <div class="content" id="management-result"></div>
+                    <button class="copy-btn" onclick="copyToClipboard('management-result')">📋 Copia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    function switchTab(tabName) {
+        // Hide all tab contents
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+
+        // Remove active class from all tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Show selected tab content
+        document.getElementById(tabName + '-tab').classList.add('active');
+
+        // Add active class to clicked tab
+        event.target.classList.add('active');
+
+        // Clear results and errors
+        hideResults();
+        hideError();
+    }
+
+    // File upload handling
+    const fileUploadArea = document.querySelector('.file-upload-area');
+    const fileInput = document.getElementById('file');
+    const fileInfo = document.getElementById('file-info');
+
+    // Drag and drop
+    fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+
+    fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragover');
+    });
+
+    fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            updateFileInfo(files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            updateFileInfo(e.target.files[0]);
+        }
+    });
+
+    function updateFileInfo(file) {
+        const size = (file.size / (1024 * 1024)).toFixed(2);
+        fileInfo.innerHTML = `
+            📄 <strong>${file.name}</strong><br>
+            📏 Dimensione: ${size} MB<br>
+            📅 Ultima modifica: ${new Date(file.lastModified).toLocaleDateString()}
+        `;
+    }
+
+    // UI helpers
+    function showLoading() {
+        document.getElementById('loading').style.display = 'block';
+        document.querySelectorAll('button[type="submit"]').forEach(btn => btn.disabled = true);
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+        document.querySelectorAll('button[type="submit"]').forEach(btn => {
+            btn.disabled = {% if not agent_available %}true{% else %}false{% endif %};
+        });
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        errorDiv.innerHTML = `❌ <strong>Errore:</strong> ${message}`;
+        errorDiv.style.display = 'block';
+    }
+
+    function hideError() {
+        document.getElementById('error').style.display = 'none';
+    }
+
+    function showResults(data) {
+        // Metadata
+        const metadata = document.getElementById('metadata');
+        if (data.metadata) {
+            metadata.innerHTML = `
+                <strong>📊 Informazioni Processing:</strong><br>
+                📝 Input: ${data.source || 'N/A'}<br>
+                📏 Lunghezza: ${data.metadata.input_length || 'N/A'} caratteri<br>
+                📊 Parole: ${data.metadata.input_words || 'N/A'}<br>
+                ✅ Stili generati: ${data.metadata.styles_processed?.join(', ') || 'N/A'}
+            `;
+        } else {
+            metadata.innerHTML = `<strong>📊 Fonte:</strong> ${data.source || 'Documento processato'}`;
+        }
+
+        // Results
+        document.getElementById('didactic-result').textContent = data.results.didactic;
+        document.getElementById('client-result').textContent = data.results.client;
+        document.getElementById('developers-result').textContent = data.results.developers;
+        document.getElementById('management-result').textContent = data.results.management;
+
+        document.getElementById('results').style.display = 'block';
+
+        // Scroll to results
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideResults() {
+        document.getElementById('results').style.display = 'none';
+    }
+
+    // Copy to clipboard
+    async function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        try {
+            await navigator.clipboard.writeText(text);
+
+            // Visual feedback
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Copiato!';
+            btn.style.background = '#28a745';
+
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        } catch (err) {
+            console.error('Errore nella copia:', err);
+        }
+    }
+
+    // Form handlers
+    document.getElementById('fileForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        const fileInput = document.getElementById('file');
+
+        if (!fileInput.files[0]) {
+            showError('Seleziona un file da processare');
+            return;
+        }
+
+        formData.append('file', fileInput.files[0]);
+
+        hideError();
+        hideResults();
+        showLoading();
+
+        try {
+            const response = await fetch('/process_file', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showResults(result);
+            } else {
+                showError(result.detail || 'Errore nel processamento del file');
+            }
+        } catch (error) {
+            showError('Errore di connessione: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    });
+
+    document.getElementById('textForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const text = document.getElementById('text').value.trim();
+
+        if (!text) {
+            showError('Inserisci del testo da processare');
+            return;
+        }
+
+        if (text.length < 50) {
+            showError('Il testo è troppo corto. Inserisci almeno 50 caratteri.');
+            return;
+        }
+
+        hideError();
+        hideResults();
+        showLoading();
+
+        try {
+            const response = await fetch('/process_text', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'text=' + encodeURIComponent(text)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showResults(result);
+            } else {
+                showError(result.detail || 'Errore nel processamento del testo');
+            }
+        } catch (error) {
+            showError('Errore di connessione: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    });
+</script>
+</body>
+</html>
